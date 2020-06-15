@@ -1,6 +1,6 @@
 {
   "name": "@crhio/bend",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "An implementation of BVBS rebar bend format using postfix notation",
   "main": "lib/bend.min.js",
   "scripts": {
