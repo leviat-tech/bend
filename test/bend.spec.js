@@ -25,4 +25,15 @@ describe('bend', () => {
   it('should understand div, atan, and neg', () => {
     expect(b3.print()).to.eql('M 0 0 L 99.96679443243097 0 A 10 10 0 0 0 100.03320483532147 -0.00022051951204667822 L 249.96348737199781 -0.9959355238454375 A 10 10 0 0 1 250.02989777488833 -0.9961560433574842 L 374.9966922073193 -0.9961560433574842');
   });
+
+  it('should report the svg commands for a given bend', () => {
+    expect(b1.commands().length).to.eql(4);
+    expect(b1.commands()[0]).to.eql({ type: 'moveto', params: [0, 0] });
+    expect(b1.commands()[3]).to.eql({
+      type: 'lineto',
+      params: [
+        1.4644660940672627,
+        -8.535533905932738],
+    });
+  });
 });

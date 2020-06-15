@@ -1,4 +1,4 @@
-import Vector from 'vector';
+import Vector from '@crhio/vector';
 
 
 function Bend({
@@ -85,18 +85,18 @@ const words = {
 const draw = {
   barRadius: ({ pen, instruction }) => ({
     pen: { ...pen, barRadius: instruction.radius },
-    d: null,
+    commands: null,
   }),
   bendRadius: ({ pen, instruction }) => ({
     pen: { ...pen, bendRadius: instruction.radius },
-    d: null,
+    commands: null,
   }),
   forward: ({ pen, instruction }) => {
     const position = pen.position
       .add(pen.direction.scale(instruction.length));
     return {
       pen: { ...pen, position },
-      d: `L ${position.x} ${position.y}`,
+      commands: [{ type: 'lineto', params: [position.x, position.y] }],
     };
   },
   bend: ({ pen, instruction }) => {
@@ -108,12 +108,12 @@ const draw = {
     const sf = -instruction.angle > 0 ? 1 : 0;
     return {
       pen: { ...pen, position, direction },
-      d: `A ${r} ${r} 0 0 ${sf} ${position.x} ${position.y}`,
+      commands: [{ type: 'arcto', params: [r, r, 0, 0, sf, position.x, position.y] }],
     };
   },
   turn: ({ pen, instruction }) => ({
     pen: { ...pen, direction: pen.direction.rotateDeg(-instruction.angle) },
-    d: null,
+    commands: null,
   }),
 };
 
@@ -138,21 +138,32 @@ Bend.prototype.instructions = function instructions() {
   return stack.instructions;
 };
 
-Bend.prototype.print = function print() {
+Bend.prototype.commands = function commands() {
   let pen = {
     position: this.initialPosition,
     direction: this.initialDirection,
   };
 
-  let d = `M ${pen.position.x} ${pen.position.y}`;
+  let cmds = [{ type: 'moveto', params: [pen.position.x, pen.position.y] }];
 
   this.instructions().forEach((instruction) => {
-    const { pen: newPen, d: newD } = draw[instruction.type]({ pen, instruction });
-    if (newD) d += ` ${newD}`;
+    const { pen: newPen, commands: newCommands } = draw[instruction.type]({ pen, instruction });
+    if (newCommands) cmds = cmds.concat(newCommands);
     pen = newPen;
   });
 
-  return d;
+  return cmds;
+};
+
+Bend.prototype.print = function print() {
+  const cmds = {
+    moveto: 'M',
+    lineto: 'L',
+    arcto: 'A',
+  };
+
+  return this.commands()
+    .map(command => [cmds[command.type], ...command.params].join(' ')).join(' ');
 };
 
 export default function (init) {
