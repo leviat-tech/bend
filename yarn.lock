@@ -885,6 +885,11 @@
     lodash "^4.17.13"
     to-fast-properties "^2.0.0"
 
+"@crhio/vector@^0.0.1":
+  version "0.0.1"
+  resolved "https://registry.yarnpkg.com/@crhio/vector/-/vector-0.0.1.tgz#4a6c9b2ee1329d3c24892595c7905b6fc2e82373"
+  integrity sha512-7QHWlJs8J2rLx9UrcLJhnJkrLSVsvcJzIBcllR5eMSf76gKSRy6J1tuX35rxiHCyX6AoOrJBNPKKvG3mSIDgCg==
+
 "@types/json5@^0.0.29":
   version "0.0.29"
   resolved "https://registry.yarnpkg.com/@types/json5/-/json5-0.0.29.tgz#ee28707ae94e11d2b827bcbe5270bcea7f3e71ee"
@@ -5740,10 +5745,6 @@ validate-npm-package-license@^3.0.1:
   dependencies:
     spdx-correct "^3.0.0"
     spdx-expression-parse "^3.0.0"
-
-"vector@git+https://2ef0d0c01f5b9419971771f3bd80290143e9d574:x-oauth-basic@github.com/obe-de/vector.git#master":
-  version "1.0.4"
-  resolved "git+https://2ef0d0c01f5b9419971771f3bd80290143e9d574:x-oauth-basic@github.com/obe-de/vector.git#94fd73f1ac5ee9ac9bbb2e1c672d5ee9daaca2ab"
 
 vm-browserify@^1.0.1:
   version "1.1.2"
