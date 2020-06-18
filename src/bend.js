@@ -1,4 +1,4 @@
-import Vector from '@crhio/vector';
+import Vector, { deg2rad, rad2deg } from '@crhio/vector';
 
 
 function Bend({
@@ -15,10 +15,6 @@ function Bend({
   this.initialDirection = Vector(initialDirection);
 }
 
-function deg2rad(deg) {
-  return deg * (Math.PI / 180);
-}
-
 const words = {
   d: ({ instructions, params }) => {
     const radius = params.pop() / 2;
@@ -31,12 +27,17 @@ const words = {
     return { instructions, params };
   },
   l: ({ instructions, params }) => {
-    let length = params.pop();
+    const projectedLength = parseFloat(params.pop());
+    let length;
     const index = instructions.length - 1;
     if (instructions[index] && instructions[index].type === 'bend') {
-      length -= instructions[index].lengthToTangent;
+      length = projectedLength - instructions[index].lengthToTangent;
     }
-    instructions.push({ type: 'forward', length });
+    instructions.push({
+      type: 'forward',
+      length: length || projectedLength,
+      projectedLength,
+    });
     return { instructions, params };
   },
   w: ({ instructions, params }) => {
@@ -72,7 +73,7 @@ const words = {
   },
   atan: ({ instructions, params }) => {
     const p = params.pop();
-    params.push(Math.atan(p));
+    params.push(rad2deg(Math.atan(p)));
     return { instructions, params };
   },
   neg: ({ instructions, params }) => {
@@ -178,6 +179,27 @@ Bend.prototype.segments = function segments() {
   });
 
   return segs;
+};
+
+Bend.prototype.steps = function steps() {
+  return this.instructions().reduce((s, instruction) => {
+    if (instruction.type === 'forward') {
+      s.push({
+        length: instruction.projectedLength,
+        termination: 'cut',
+      });
+    } else if (['bend', 'turn'].includes(instruction.type)) {
+      const lastStep = s[s.length - 1];
+      const firstStep = s[0];
+      lastStep.termination = 'bend';
+      lastStep.sign = Math.sign(instruction.angle);
+      lastStep.angle = Math.abs(instruction.angle);
+      const isTurn = firstStep && firstStep.termination === 'bend' && firstStep.sign !== lastStep.sign;
+      lastStep.turn = !!isTurn;
+    }
+
+    return s;
+  }, []);
 };
 
 Bend.prototype.print = function print() {

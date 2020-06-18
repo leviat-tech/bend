@@ -23,7 +23,7 @@ describe('bend', () => {
   });
 
   it('should understand div, atan, and neg', () => {
-    expect(b3.print()).to.eql('M 0 0 L 99.96679443243097 0 A 10 10 0 0 0 100.03320483532147 -0.00022051951204667822 L 249.96348737199781 -0.9959355238454375 A 10 10 0 0 1 250.02989777488833 -0.9961560433574842 L 374.9966922073193 -0.9961560433574842');
+    expect(b3.print()).to.eql('M 0 0 L 98.07417596432748 0 A 10 10 0 0 0 101.78808272786851 -0.7152330911474072 L 237.48342090492037 -54.99336836196815 A 10 10 0 0 1 241.1973276684614 -55.708601453115556 L 364.2715036327889 -55.708601453115556');
   });
 
   it('should be able to return the segments of a path', () => {
@@ -31,6 +31,21 @@ describe('bend', () => {
     expect(b1segs[0].points).to.eql([{ x: 0, y: 0 }, { x: 5, y: 0 }]);
     const b2segs = b2.segments();
     expect(b2segs[2].midpoint.y).to.eql(-2.792893218813453);
+  });
+
+  it('should be able to return the manufacturing steps', () => {
+    const b1steps = b1.steps();
+    const b3steps = b3.steps();
+    expect(b1steps[0]).to.eql({
+      length: 5, termination: 'bend', sign: 1, angle: 90, turn: false,
+    });
+    expect(b3steps[1]).to.eql({
+      length: 150,
+      termination: 'bend',
+      sign: -1,
+      angle: 21.80140948635181,
+      turn: true,
+    });
   });
 
   it('should report the svg commands for a given bend', () => {
