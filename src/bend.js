@@ -117,6 +117,15 @@ const draw = {
   }),
 };
 
+const cmdPt = ({ type, params }) => {
+  switch (type) {
+    case 'arcto':
+      return { x: params[5], y: params[6] };
+    default:
+      return { x: params[0], y: params[1] };
+  }
+};
+
 Bend.prototype.list = function list() {
   return this.path.split(' ');
 };
@@ -153,6 +162,22 @@ Bend.prototype.commands = function commands() {
   });
 
   return cmds;
+};
+
+Bend.prototype.segments = function segments() {
+  const commands = this.commands();
+
+  let prev = cmdPt(commands[0]);
+  const segs = [];
+  commands.slice(1).forEach((cmd) => {
+    const next = cmdPt(cmd);
+    const translation = Vector(next).subtract(prev);
+    const midpoint = Vector(prev).add(translation.scale(0.5));
+    segs.push({ type: cmd.type, points: [prev, next], midpoint });
+    prev = { x: next.x, y: next.y };
+  });
+
+  return segs;
 };
 
 Bend.prototype.print = function print() {

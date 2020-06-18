@@ -26,6 +26,13 @@ describe('bend', () => {
     expect(b3.print()).to.eql('M 0 0 L 99.96679443243097 0 A 10 10 0 0 0 100.03320483532147 -0.00022051951204667822 L 249.96348737199781 -0.9959355238454375 A 10 10 0 0 1 250.02989777488833 -0.9961560433574842 L 374.9966922073193 -0.9961560433574842');
   });
 
+  it('should be able to return the segments of a path', () => {
+    const b1segs = b1.segments();
+    expect(b1segs[0].points).to.eql([{ x: 0, y: 0 }, { x: 5, y: 0 }]);
+    const b2segs = b2.segments();
+    expect(b2segs[2].midpoint.y).to.eql(-2.792893218813453);
+  });
+
   it('should report the svg commands for a given bend', () => {
     expect(b1.commands().length).to.eql(4);
     expect(b1.commands()[0]).to.eql({ type: 'moveto', params: [0, 0] });
