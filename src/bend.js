@@ -60,7 +60,7 @@ const words = {
       // Bend radius requires modification of neighboring straight segments
       const lengthToTangent = br / Math.tan(deg2rad(180 - Math.abs(angle)) / 2);
       instructions[index].length -= lengthToTangent;
-      instructions.push({ type: 'bend', angle, lengthToTangent });
+      instructions.push({ type: 'bend', angle, lengthToTangent, radius: br });
     }
 
     return { instructions, params };
@@ -200,6 +200,16 @@ Bend.prototype.steps = function steps() {
 
     return s;
   }, []);
+};
+
+Bend.prototype.length = function length() {
+  return this.instructions().reduce((s, instruction) => {
+    if (instruction.type === 'forward') return s + instruction.length;
+    if (instruction.type === 'bend') {
+      return s + Math.abs(instruction.radius * deg2rad(instruction.angle));
+    }
+    return s;
+  }, 0);
 };
 
 Bend.prototype.print = function print() {

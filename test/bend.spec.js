@@ -58,4 +58,10 @@ describe('bend', () => {
         -8.535533905932738],
     });
   });
+
+  it('should be able to compute the overall developed length of the bend', () => {
+    expect(b1.length()).to.eql(15);
+    expect(b2.length()).to.eql(17.05553473089231);
+    expect(b3.length()).to.eql(374.90683139955723);
+  });
 });
