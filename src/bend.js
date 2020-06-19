@@ -127,6 +127,18 @@ const cmdPt = ({ type, params }) => {
   }
 };
 
+const invertParams = ({ type, params: p }) => {
+  switch (type) {
+    case 'arcto':
+      return {
+        type,
+        params: [p[0], p[1], p[2], p[3], p[4] ? 0 : 1, p[5], -p[6]],
+      };
+    default:
+      return { type, params: [p[0], -p[1]] };
+  }
+};
+
 Bend.prototype.list = function list() {
   return this.path.split(' ');
 };
@@ -212,7 +224,7 @@ Bend.prototype.length = function length() {
   }, 0);
 };
 
-Bend.prototype.print = function print() {
+Bend.prototype.print = function print({ invertY = false } = {}) {
   const cmds = {
     moveto: 'M',
     lineto: 'L',
@@ -220,7 +232,10 @@ Bend.prototype.print = function print() {
   };
 
   return this.commands()
-    .map(command => [cmds[command.type], ...command.params].join(' ')).join(' ');
+    .map((command) => {
+      const params = invertY ? invertParams(command).params : command.params;
+      return [cmds[command.type], ...params].join(' ');
+    }).join(' ');
 };
 
 export default function (init) {
