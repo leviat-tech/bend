@@ -102,11 +102,11 @@ const draw = {
   },
   bend: ({ pen, instruction }) => {
     const r = pen.bendRadius;
-    const direction = pen.direction.rotateDeg(-instruction.angle);
+    const direction = pen.direction.rotateDeg(instruction.angle);
     const position = pen.position
       .add(pen.direction.scale(instruction.lengthToTangent))
       .add(direction.scale(instruction.lengthToTangent));
-    const sf = -instruction.angle > 0 ? 1 : 0;
+    const sf = instruction.angle > 0 ? 1 : 0;
     return {
       pen: { ...pen, position, direction },
       commands: [{ type: 'arcto', params: [r, r, 0, 0, sf, position.x, position.y] }],
@@ -177,8 +177,10 @@ Bend.prototype.commands = function commands() {
   return cmds;
 };
 
-Bend.prototype.segments = function segments() {
-  const commands = this.commands();
+Bend.prototype.segments = function segments({ invertY = false } = {}) {
+  const commands = invertY
+    ? this.commands().map(command => invertParams(command))
+    : this.commands();
 
   let prev = cmdPt(commands[0]);
   const segs = [];
