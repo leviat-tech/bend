@@ -109,11 +109,12 @@ const draw = {
     const sf = instruction.angle > 0 ? 1 : 0;
     const l = Vector(pen.position).dist(position) / 2;
     const sagitta = r - Math.sqrt(r * r - l * l);
+    const sSign = sf === 1 ? 1 : -1;
     return {
       pen: { ...pen, position, direction },
       commands: [{
         type: 'arcto',
-        params: [position.x, position.y, sagitta / l],
+        params: [position.x, position.y, sSign * (sagitta / l)],
         svgParams: [r, r, 0, 0, sf, position.x, position.y],
       }],
     };
@@ -138,7 +139,7 @@ const invertParams = ({ type, params: p, svgParams: sp }) => {
   if (type === 'arcto') {
     return {
       type,
-      params,
+      params: [p[0], -p[1], -p[2]],
       svgParams: [sp[0], sp[1], sp[2], sp[3], sp[4] ? 0 : 1, sp[5], -sp[6]],
     };
   }

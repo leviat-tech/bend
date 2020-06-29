@@ -9,6 +9,7 @@ describe('bend', () => {
   const b1 = Bend({ path: '5 l 90 w 5 l 45 w 5 l' });
   const b2 = Bend({ path: '2 s 5 l 90 w 5 l 45 w 5 l -135 w 5 l' });
   const b3 = Bend({ path: '10 d 20 s 100 l 60 150 div atan w 150 l 60 150 div atan neg w 125 l' });
+  const b4 = Bend({ path: '8 d 16 s 240 l 40 w 174 l -40 w 240 l' });
 
   it('should report the correct drawing instructions', () => {
     expect(b1.instructions().length).to.eql(5);
@@ -67,5 +68,11 @@ describe('bend', () => {
 
   it('should correctly compute the sagitta property for a bend', () => {
     expect(b2.commands()[2].params[2]).to.eql(0.4142135623730951);
+  });
+
+  it('should set the sagitta to the proper +/- value', () => {
+    const commands = b4.commands();
+    expect(commands[2].params[2]).to.eql(0.17632698070846506);
+    expect(commands[4].params[2]).to.eql(-0.17632698070846592);
   });
 });
