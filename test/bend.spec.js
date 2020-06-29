@@ -64,4 +64,8 @@ describe('bend', () => {
     expect(b2.length()).to.eql(17.05553473089231);
     expect(b3.length()).to.eql(374.90683139955723);
   });
+
+  it('should correctly compute the sagitta property for a bend', () => {
+    expect(b2.commands()[2].params[2]).to.eql(0.4142135623730951);
+  });
 });

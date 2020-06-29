@@ -107,9 +107,15 @@ const draw = {
       .add(pen.direction.scale(instruction.lengthToTangent))
       .add(direction.scale(instruction.lengthToTangent));
     const sf = instruction.angle > 0 ? 1 : 0;
+    const l = Vector(pen.position).dist(position) / 2;
+    const sagitta = r - Math.sqrt(r * r - l * l);
     return {
       pen: { ...pen, position, direction },
-      commands: [{ type: 'arcto', params: [r, r, 0, 0, sf, position.x, position.y] }],
+      commands: [{
+        type: 'arcto',
+        params: [position.x, position.y, sagitta / l],
+        svgParams: [r, r, 0, 0, sf, position.x, position.y],
+      }],
     };
   },
   turn: ({ pen, instruction }) => ({
@@ -120,23 +126,26 @@ const draw = {
 
 const cmdPt = ({ type, params }) => {
   switch (type) {
-    case 'arcto':
-      return { x: params[5], y: params[6] };
     default:
       return { x: params[0], y: params[1] };
   }
 };
 
-const invertParams = ({ type, params: p }) => {
-  switch (type) {
-    case 'arcto':
-      return {
-        type,
-        params: [p[0], p[1], p[2], p[3], p[4] ? 0 : 1, p[5], -p[6]],
-      };
-    default:
-      return { type, params: [p[0], -p[1]] };
+const invertParams = ({ type, params: p, svgParams: sp }) => {
+  const params = p.slice();
+  params.splice(1, 1, -p[1]);
+
+  if (type === 'arcto') {
+    return {
+      type,
+      params,
+      svgParams: [sp[0], sp[1], sp[2], sp[3], sp[4] ? 0 : 1, sp[5], -sp[6]],
+    };
   }
+  return {
+    type,
+    params,
+  };
 };
 
 Bend.prototype.list = function list() {
@@ -235,8 +244,15 @@ Bend.prototype.print = function print({ invertY = false } = {}) {
 
   return this.commands()
     .map((command) => {
-      const params = invertY ? invertParams(command).params : command.params;
-      return [cmds[command.type], ...params].join(' ');
+      let cmd = command;
+
+      if (invertY) {
+        cmd = invertParams(command);
+      }
+
+      const svgParams = cmd.type === 'arcto' ? cmd.svgParams : cmd.params;
+
+      return [cmds[command.type], ...svgParams].join(' ');
     }).join(' ');
 };
 
