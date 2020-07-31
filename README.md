@@ -32,6 +32,9 @@ bend.print();
 // M 0 0 L 99.96679443243097 0 A 10 10 0 0 0 100.03320483532147 -0.00022051951204667822 L 249.96348737199781 -0.9959355238454375 A 10 10 0 0 1 250.02989777488833 -0.9961560433574842 L 374.9966922073193 -0.9961560433574842
 ```
 
+A diagram of how the path is computed:
+![Path Diagram](https://github.com/obe-de/bend/blob/master/example.png)
+
 Additionally:
 - Webpack 3 based.
 - ES6 as a source.

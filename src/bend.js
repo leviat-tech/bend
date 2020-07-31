@@ -30,8 +30,11 @@ const words = {
     const projectedLength = parseFloat(params.pop());
     let length;
     const index = instructions.length - 1;
+    if (instructions[index] && instructions[index].type === 'turn') {
+      length = projectedLength - instructions[index].shift;
+    }
     if (instructions[index] && instructions[index].type === 'bend') {
-      length = projectedLength - instructions[index].lengthToTangent;
+      length = projectedLength - instructions[index].lengthToTangent - instructions[index].shift;
     }
     instructions.push({
       type: 'forward',
@@ -44,23 +47,37 @@ const words = {
     const angle = params.pop();
     const index = instructions.length - 1;
 
-    // Find bend radius, if any
-    let br = 0;
+    // Find bend radius and bar radius, if any
+    let barR = 0;
     for (let i = index; i >= 0; i -= 1) {
-      if (instructions[i].type === 'bendRadius') {
-        br = instructions[i].radius;
+      if (instructions[i].type === 'barRadius') {
+        barR = instructions[i].radius;
         break;
       }
     }
 
-    if (br === 0) {
+    let bendR = 0;
+    for (let i = index; i >= 0; i -= 1) {
+      if (instructions[i].type === 'bendRadius') {
+        bendR = instructions[i].radius + barR;
+        break;
+      }
+    }
+
+    //  Bend reduces length of segment by tan(w/2) / radius
+    const shift = barR !== 0 ? Math.abs(barR * Math.tan(deg2rad(angle / 2))) : 0;
+    instructions[index].length -= shift;
+
+    if (bendR === 0) {
       // No bend radius results in a sharp turn
-      instructions.push({ type: 'turn', angle });
+      instructions.push({ type: 'turn', angle, shift });
     } else {
       // Bend radius requires modification of neighboring straight segments
-      const lengthToTangent = br / Math.tan(deg2rad(180 - Math.abs(angle)) / 2);
+      const lengthToTangent = bendR / Math.tan(deg2rad(180 - Math.abs(angle)) / 2);
       instructions[index].length -= lengthToTangent;
-      instructions.push({ type: 'bend', angle, lengthToTangent, radius: br });
+      instructions.push({
+        type: 'bend', angle, lengthToTangent, shift, radius: bendR,
+      });
     }
 
     return { instructions, params };
@@ -101,7 +118,9 @@ const draw = {
     };
   },
   bend: ({ pen, instruction }) => {
-    const r = pen.bendRadius;
+    const bendR = pen.bendRadius || 0;
+    const barR = pen.barRadius || 0;
+    const r = bendR + barR;
     const direction = pen.direction.rotateDeg(instruction.angle);
     const position = pen.position
       .add(pen.direction.scale(instruction.lengthToTangent))
@@ -120,7 +139,7 @@ const draw = {
     };
   },
   turn: ({ pen, instruction }) => ({
-    pen: { ...pen, direction: pen.direction.rotateDeg(-instruction.angle) },
+    pen: { ...pen, direction: pen.direction.rotateDeg(instruction.angle) },
     commands: null,
   }),
 };
