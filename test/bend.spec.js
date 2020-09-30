@@ -82,4 +82,46 @@ describe('bend', () => {
     expect(commands[2].params[2]).to.eql(0.17632698070846461);
     expect(commands[4].params[2]).to.eql(-0.17632698070846428);
   });
+
+  it('should allow creation of a bend at an arbitrary position', () => {
+    const bend = Bend({ path: '1 d 1 s 5 l 90 w 5 l 45 w 5 l' })
+      .bend(1, 0.5, 30);
+
+    expect(bend.path).to.eql('1 d 1 s 5 l 90 w 2.5 l 30 w 2.5 l 45 w 5 l');
+  });
+
+  it('should allow a bend vertex to be toggled', () => {
+    const bend = Bend({ path: '1 d 1 s 5 l 90 w 5 l 45 w 5 l' })
+      .toggleBend(1);
+
+    expect(bend.path).to.eql('1 d 1 s 5 l 90 w 5 l -90 w 5 l');
+  });
+
+  it('should allow a vertex to be tested if it is straight', () => {
+    const bend = Bend({ path: '1 d 1 s 5 l 90 w 5 l 0 w 5 l' });
+
+    expect(bend.isBendStraight(0)).to.eql(false);
+    expect(bend.isBendStraight(1)).to.eql(true);
+  });
+
+  it('should allow a vertex to be removed', () => {
+    const bend = Bend({ path: '1 d 1 s 5 l 90 w 5 l 0 w 5 l' })
+      .removeBend(1);
+
+    expect(bend.path).to.eql('1 d 1 s 5 l 90 w 10 l');
+  });
+
+  it('should allow the length of a segment to be modified', () => {
+    const bend = Bend({ path: '1 d 1 s 5 l 90 w 5 l 0 w 5 l' })
+      .setSegmentLength(0, 8);
+
+    expect(bend.path).to.eql('1 d 1 s 8 l 90 w 5 l 0 w 5 l');
+  });
+
+  it('should allow an angle to be modified', () => {
+    const bend = Bend({ path: '1 d 1 s 5 l 90 w 5 l 0 w 5 l' })
+      .setBendAngle(0, 45);
+
+    expect(bend.path).to.eql('1 d 1 s 5 l 45 w 5 l 0 w 5 l');
+  });
 });

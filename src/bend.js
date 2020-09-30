@@ -144,6 +144,22 @@ const draw = {
   }),
 };
 
+const drawProjected = {
+  ...draw,
+  forward: ({ pen, instruction }) => {
+    const position = pen.position
+      .add(pen.direction.scale(instruction.projectedLength));
+    return {
+      pen: { ...pen, position },
+      commands: [{ type: 'lineto', params: [position.x, position.y] }],
+    };
+  },
+  bend: ({ pen, instruction }) => ({
+    pen: { ...pen, direction: pen.direction.rotateDeg(instruction.angle) },
+    commands: null,
+  }),
+};
+
 const cmdPt = ({ type, params }) => {
   switch (type) {
     default:
@@ -172,6 +188,26 @@ Bend.prototype.list = function list() {
   return this.path.split(' ');
 };
 
+// A structured form of the 'path' property
+Bend.prototype.instructionList = function instructionList() {
+  const stack = {
+    instructions: [],
+    params: [],
+  };
+
+  this.list().forEach((arg) => {
+    if (words[arg]) {
+      stack.instructions.push({ type: arg, params: stack.params });
+      stack.params = [];
+    } else {
+      stack.params.push(arg);
+    }
+  });
+
+  return stack.instructions;
+};
+
+// The instruction list, computing vertices from bends
 Bend.prototype.instructions = function instructions() {
   let stack = {
     instructions: [],
@@ -189,6 +225,8 @@ Bend.prototype.instructions = function instructions() {
   return stack.instructions;
 };
 
+// Path instructions translated into commands that map
+// onto SVG path commands
 Bend.prototype.commands = function commands() {
   let pen = {
     position: this.initialPosition,
@@ -206,6 +244,25 @@ Bend.prototype.commands = function commands() {
   return cmds;
 };
 
+// A list of commands, using the projected (i.e., non-radiused) vertices
+Bend.prototype.projectedCommands = function lengths() {
+  let pen = {
+    position: this.initialPosition,
+    direction: this.initialDirection,
+  };
+
+  let cmds = [{ type: 'moveto', params: [pen.position.x, pen.position.y] }];
+
+  this.instructions().forEach((instruction) => {
+    const { pen: newPen, commands: newCommands } = drawProjected[instruction.type]({ pen, instruction });
+    if (newCommands) cmds = cmds.concat(newCommands);
+    pen = newPen;
+  });
+
+  return cmds;
+};
+
+// A list of segments, converting bend instructions into arcs and lines
 Bend.prototype.segments = function segments({ invertY = false } = {}) {
   const commands = invertY
     ? this.commands().map(command => invertParams(command))
@@ -224,6 +281,60 @@ Bend.prototype.segments = function segments({ invertY = false } = {}) {
   return segs;
 };
 
+// A list of segments using the projected vertices
+Bend.prototype.projectedSegments = function projectedSegments({ invertY = false } = {}) {
+  const commands = invertY
+    ? this.projectedCommands().map(command => invertParams(command))
+    : this.projectedCommands();
+
+  let prev = cmdPt(commands[0]);
+  const segs = [];
+  commands.slice(1).forEach((cmd) => {
+    const next = cmdPt(cmd);
+    const translation = Vector(next).subtract(prev);
+    const midpoint = Vector(prev).add(translation.scale(0.5));
+    segs.push({ type: cmd.type, points: [prev, next], midpoint });
+    prev = { x: next.x, y: next.y };
+  });
+
+  return segs;
+};
+
+function ptEqual(ptA, ptB) {
+  return ptA.x === ptB.x
+    && ptA.y === ptB.y;
+}
+
+// A list of the projected vertices
+Bend.prototype.vertices = function vertices() {
+  const segments = this.projectedSegments();
+  const v = segments
+    .map(segment => segment.points[0]);
+
+  const lastSegment = segments[segments.length - 1];
+
+  if (!ptEqual(v[0], lastSegment.points[1])) {
+    v.push(lastSegment.points[1]);
+  }
+
+  return v;
+};
+
+// A list of the 'inner' vertices (excluding endpoints)
+Bend.prototype.innerVertices = function innerVertices() {
+  const segments = this.projectedSegments();
+  segments.pop();
+  return segments.map(segment => segment.points[1]);
+};
+
+// A list of the 'bend' instructions
+Bend.prototype.bendInstructions = function bendInstructions() {
+  const instructions = this.instructionList();
+
+  return instructions.filter(instruction => instruction.type === 'w');
+};
+
+// A list of operations performed to fabricate the shape from a single bar
 Bend.prototype.steps = function steps() {
   return this.instructions().reduce((s, instruction) => {
     if (instruction.type === 'forward') {
@@ -245,6 +356,7 @@ Bend.prototype.steps = function steps() {
   }, []);
 };
 
+// The overall length of the shape, accounting for arc lengths of bend segments
 Bend.prototype.length = function length() {
   return this.instructions().reduce((s, instruction) => {
     if (instruction.type === 'forward') return s + instruction.length;
@@ -254,6 +366,162 @@ Bend.prototype.length = function length() {
     return s;
   }, 0);
 };
+
+function instructionsToPath(instructions) {
+  const list = instructions.map(({ type, params }) => `${params.join(' ')} ${type}`);
+  return list.join(' ');
+}
+
+Bend.prototype.bend = function bend(index, t, angle) {
+  const segments = this.projectedSegments();
+  const instructions = this.instructionList();
+  const segment = segments[index];
+
+  // Find index of instruction to replace
+  const replacedInstruction = instructions
+    .filter(i => i.type === 'l')[index];
+  const instructionIndex = instructions.indexOf(replacedInstruction);
+
+  // Find distance along segment to bend
+  const segLength = Vector(segment.points[0]).dist(segment.points[1]);
+  const l1 = t * segLength;
+  const l2 = segLength - l1;
+
+  // Split straight segment into two, and insert new turn
+  instructions.splice(
+    instructionIndex,
+    1,
+    { type: 'l', params: [l1] },
+    { type: 'w', params: [angle] },
+    { type: 'l', params: [l2] },
+  );
+
+  // Create new Bend object
+  return new Bend({
+    path: instructionsToPath(instructions),
+    initialPosition: this.initialPosition,
+    initialDirection: this.initialDirection,
+  });
+};
+
+Bend.prototype.toggleBend = function toggleBend(index) {
+  // Find bend to toggle
+  const instructions = this.instructionList();
+  const bends = instructions.filter(instruction => instruction.type === 'w');
+  const bend = bends[index];
+  const instructionIndex = instructions.indexOf(bend);
+  const oldAngle = parseFloat(bend.params[0]);
+
+  // Create new bend to replace it
+  let angle;
+  if (oldAngle > 0) {
+    angle = -90;
+  } else if (oldAngle < 0) {
+    angle = 0;
+  } else {
+    angle = 90;
+  }
+
+  // Replace existing bend with new bend
+  instructions[instructionIndex].params[0] = angle;
+
+  // Create new Bend object
+  return new Bend({
+    path: instructionsToPath(instructions),
+    initialPosition: this.initialPosition,
+    initialDirection: this.initialDirection,
+  });
+};
+
+Bend.prototype.isBendStraight = function isBendStraight(index) {
+  const instructions = this.instructionList();
+  const bends = instructions.filter(instruction => instruction.type === 'w');
+  const bend = bends[index];
+  return parseFloat(bend.params[0]) === 0;
+};
+
+Bend.prototype.removeBend = function removeBend(index) {
+  // Find bend to remove
+  const instructions = this.instructionList();
+  const bends = instructions.filter(instruction => instruction.type === 'w');
+  const bend = bends[index];
+  const instructionIndex = instructions.indexOf(bend);
+
+  // Join surrounding segments
+  const s1 = instructions[instructionIndex - 1];
+  const s2 = instructions[instructionIndex + 1];
+
+  const s1Length = s1.type === 'l' ? parseFloat(s1.params[0]) : 0;
+  const s2Length = s2.type === 'l' ? parseFloat(s2.params[0]) : 0;
+
+  let segs;
+  let i;
+  let rem;
+  if (s1 && s2) {
+    segs = [{ type: 'l', params: [s1Length + s2Length] }];
+    i = instructionIndex - 1;
+    rem = 3;
+  } else if (s1) {
+    segs = [s1];
+    i = instructionIndex - 1;
+    rem = 2;
+  } else if (s2) {
+    segs = [s2];
+    i = instructionIndex;
+    rem = 2;
+  } else {
+    segs = [];
+    i = instructionIndex;
+    rem = 1;
+  }
+
+  // Replace segments
+  instructions.splice(i, rem, ...segs);
+
+  // Create new Bend object
+  return new Bend({
+    path: instructionsToPath(instructions),
+    initialPosition: this.initialPosition,
+    initialDirection: this.initialDirection,
+  });
+};
+
+Bend.prototype.setSegmentLength = function setSegmentLength(index, length) {
+  // Find straight segment to modify
+  const instructions = this.instructionList();
+  const segments = instructions.filter(instruction => instruction.type === 'l');
+  const segment = segments[index];
+  const instructionIndex = instructions.indexOf(segment);
+
+  // Replace length property in that segment
+  instructions[instructionIndex].params[0] = length;
+
+  // Create new Bend object
+  return new Bend({
+    path: instructionsToPath(instructions),
+    initialPosition: this.initialPosition,
+    initialDirection: this.initialDirection,
+  });
+};
+
+Bend.prototype.setBendAngle = function setBendAngle(index, angle) {
+  // Find bend to modify
+  const instructions = this.instructionList();
+  const bends = instructions.filter(instruction => instruction.type === 'w');
+  const bend = bends[index];
+  const instructionIndex = instructions.indexOf(bend);
+
+  // Replace angle property in that instruction
+  instructions[instructionIndex].params[0] = angle;
+
+  // Create new Bend object
+  return new Bend({
+    path: instructionsToPath(instructions),
+    initialPosition: this.initialPosition,
+    initialDirection: this.initialDirection,
+  });
+};
+
 
 Bend.prototype.print = function print({ invertY = false } = {}) {
   const cmds = {
