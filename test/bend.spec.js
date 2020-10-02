@@ -124,4 +124,30 @@ describe('bend', () => {
 
     expect(bend.path).to.eql('1 d 1 s 5 l 45 w 5 l 0 w 5 l');
   });
+
+  it('should allow a bend to be reversed', () => {
+    const bend = Bend({ path: '1 d 1 s 5 l 90 w 5 l 30 w 5 l' })
+      .reverse();
+
+    expect(bend.path).to.eql('1 s 1 d 5 l -30 w 5 l -90 w 5 l');
+    expect(bend.initialPosition.x).to.eql(2.5000000000000004);
+    expect(bend.initialDirection.x).to.eql(0.4999999999999998);
+  });
+
+  it('should allow two bends to be joined', () => {
+    const bend1 = Bend({
+      path: '1 d 1 s 10 l -45 w 14.142 l 45 w 10 l',
+      initialPosition: { x: -30, y: 10 },
+      initialDirection: { x: 1, y: 0 },
+    });
+
+    const bend2 = Bend({
+      path: '1 d 1 s 10 l 45 w 14.142 l 45 w 10 l',
+      initialPosition: { x: 5, y: -5 },
+      initialDirection: { x: 1, y: 0 },
+    });
+
+    const joined = bend1.join(bend2);
+    expect(joined.path).to.eql('1 d 1 s 10 l -45 w 14.142 l 45 w 10 l -45 w 7.071203435596426 l 45 w 10 l 45.00000000000001 w 14.142 l 44.99999999999998 w 10 l');
+  });
 });

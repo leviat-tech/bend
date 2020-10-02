@@ -1,6 +1,6 @@
 {
   "name": "@crhio/bend",
-  "version": "0.0.10",
+  "version": "0.0.11",
   "description": "An implementation of BVBS rebar bend format using postfix notation",
   "main": "lib/bend.min.js",
   "scripts": {
@@ -50,7 +50,7 @@
     "yargs": "^10.0.3"
   },
   "dependencies": {
-    "@crhio/vector": "^0.0.1"
+    "@crhio/vector": "^0.0.2"
   },
   "bugs": {
     "url": "https://github.com/krasimir/webpack-library-starter/issues"

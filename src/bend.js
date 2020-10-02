@@ -15,6 +15,8 @@ function Bend({
   this.initialDirection = Vector(initialDirection);
 }
 
+const realThreshold = 1e-8;
+
 const words = {
   d: ({ instructions, params }) => {
     const radius = params.pop() / 2;
@@ -184,6 +186,62 @@ const invertParams = ({ type, params: p, svgParams: sp }) => {
   };
 };
 
+const fuzzyEqual = (x, y, epsilon = realThreshold) => Math.abs(x - y) < epsilon;
+
+const fuzzyEqualPt = (ptA, ptB, epsilon = realThreshold) => fuzzyEqual(ptA.x, ptB.x, epsilon)
+    && fuzzyEqual(ptA.y, ptB.y, epsilon);
+
+const ptIsOnSegment = ([{ x: x1, y: y1 }, { x: x2, y: y2 }], { x, y }) => {
+  const a = (x - x1) / (x2 - x1);
+  const b = (y - y1) / (y2 - y1);
+  const isOnLine = fuzzyEqual(a, b);
+
+  const xIsOnSegment = x1 < x2
+    ? x1 <= x && x <= x2
+    : x2 <= x && x <= x1;
+
+  const yIsOnSegment = y1 < y2
+    ? y1 < y && y <= y2
+    : y2 <= y && y <= y1;
+
+  return isOnLine && xIsOnSegment && yIsOnSegment;
+};
+
+const segmentsAreColinear = (segA, segB) => {
+  const line = [segA[0], segB[1]];
+  return ptIsOnSegment(line, segA[1]) && ptIsOnSegment(line, segB[0]);
+};
+
+const instructionsToPath = (instructions) => {
+  const list = instructions.map(({ type, params }) => `${params.join(' ')} ${type}`);
+  return list.join(' ');
+};
+
+const verticesToPath = (vertices, d = 0, s = 0) => {
+  let v0 = vertices[0];
+  let vec = null;
+
+  const instructions = [
+    { type: 'd', params: [d] },
+    { type: 's', params: [s] },
+  ];
+
+  for (let i = 1; i < vertices.length; i += 1) {
+    if (vec) {
+      const newVec = Vector(vertices[i]).subtract(v0);
+      const angle = newVec.angleDeg() - vec.angleDeg();
+      instructions.push({ type: 'w', params: [angle] });
+      vec = newVec;
+    } else {
+      vec = Vector(vertices[i]).subtract(v0);
+    }
+    instructions.push({ type: 'l', params: [vec.magnitude()] });
+    v0 = vertices[i];
+  }
+
+  return instructionsToPath(instructions);
+};
+
 Bend.prototype.list = function list() {
   return this.path.split(' ');
 };
@@ -300,11 +358,6 @@ Bend.prototype.projectedSegments = function projectedSegments({ invertY = false 
   return segs;
 };
 
-function ptEqual(ptA, ptB) {
-  return ptA.x === ptB.x
-    && ptA.y === ptB.y;
-}
-
 // A list of the projected vertices
 Bend.prototype.vertices = function vertices() {
   const segments = this.projectedSegments();
@@ -313,7 +366,7 @@ Bend.prototype.vertices = function vertices() {
 
   const lastSegment = segments[segments.length - 1];
 
-  if (!ptEqual(v[0], lastSegment.points[1])) {
+  if (!fuzzyEqualPt(v[0], lastSegment.points[1])) {
     v.push(lastSegment.points[1]);
   }
 
@@ -366,11 +419,6 @@ Bend.prototype.length = function length() {
     return s;
   }, 0);
 };
-
-function instructionsToPath(instructions) {
-  const list = instructions.map(({ type, params }) => `${params.join(' ')} ${type}`);
-  return list.join(' ');
-}
 
 Bend.prototype.bend = function bend(index, t, angle) {
   const segments = this.projectedSegments();
@@ -522,6 +570,86 @@ Bend.prototype.setBendAngle = function setBendAngle(index, angle) {
   });
 };
 
+Bend.prototype.reverse = function reverse() {
+  const segments = this.projectedSegments();
+  const lastSegment = segments[segments.length - 1];
+  const lastPt = lastSegment.points[1];
+  const direction = Vector(lastSegment.points[0])
+    .subtract(lastSegment.points[1])
+    .normalize();
+  const instructions = this.instructionList()
+    .reverse()
+    .map(({ type, params }) => ({ type, params: type === 'w' ? [-parseFloat(params[0])] : params }));
+  const iType = i => (['d', 's'].includes(i.type) ? 'a' : 'b');
+  const ranges = instructions.reduce((r, i) => {
+    if (r.length === 0) {
+      r.push([i]);
+      return r;
+    }
+
+    const lastI = r[r.length - 1][0];
+    if (iType(i) === iType(lastI)) {
+      r[r.length - 1].push(i);
+    } else {
+      r.push([i]);
+    }
+
+    return r;
+  }, []);
+
+  for (let i = 0; i < ranges.length; i += 1) {
+    const r = ranges[i];
+    if (iType(r[0]) === 'a') {
+      // Swap positions of d/s commands
+      ranges[i] = ranges[i - 1];
+      ranges[i - 1] = r;
+    }
+  }
+
+  const merged = [].concat(...ranges);
+
+  return new Bend({
+    path: instructionsToPath(merged),
+    initialPosition: lastPt,
+    initialDirection: direction,
+  });
+};
+
+Bend.prototype.join = function join(bend, endpointA = 'end', endpointB = 'start') {
+  const a = endpointA === 'end' ? this : this.reverse();
+  const b = endpointB === 'start' ? bend : bend.reverse();
+
+  const aVertices = a.vertices();
+  const aVec = Vector(aVertices[aVertices.length - 1])
+    .subtract(aVertices[aVertices.length - 2])
+    .normalize();
+  const aLastSeg = [aVertices[aVertices.length - 2], aVertices[aVertices.length - 1]];
+  const bVertices = b.vertices();
+  const bFirstSeg = [bVertices[0], bVertices[1]];
+
+  const endpointsCoincide = fuzzyEqualPt(aVertices[aVertices.length - 1], bVertices[0]);
+  const areColinear = segmentsAreColinear(aLastSeg, bFirstSeg);
+
+  if (endpointsCoincide && !areColinear) {
+    aVertices.pop();
+  } else if (areColinear) {
+    aVertices.pop();
+    bVertices.shift();
+  }
+
+  const aInstructions = a.instructionList();
+  const vertices = aVertices.concat(bVertices);
+  const dInstruction = aInstructions.find(i => i.type === 'd');
+  const d = dInstruction ? dInstruction.params[0] : 0;
+  const sInstruction = aInstructions.find(i => i.type === 's');
+  const s = sInstruction ? sInstruction.params[0] : 0;
+
+  return new Bend({
+    path: verticesToPath(vertices, d, s),
+    initialPosition: aVertices[0],
+    initialDirection: aVec,
+  });
+};
 
 Bend.prototype.print = function print({ invertY = false } = {}) {
   const cmds = {

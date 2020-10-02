@@ -885,10 +885,10 @@
     lodash "^4.17.13"
     to-fast-properties "^2.0.0"
 
-"@crhio/vector@^0.0.1":
-  version "0.0.1"
-  resolved "https://registry.yarnpkg.com/@crhio/vector/-/vector-0.0.1.tgz#4a6c9b2ee1329d3c24892595c7905b6fc2e82373"
-  integrity sha512-7QHWlJs8J2rLx9UrcLJhnJkrLSVsvcJzIBcllR5eMSf76gKSRy6J1tuX35rxiHCyX6AoOrJBNPKKvG3mSIDgCg==
+"@crhio/vector@^0.0.2":
+  version "0.0.2"
+  resolved "https://registry.yarnpkg.com/@crhio/vector/-/vector-0.0.2.tgz#b3b4c9372d8cf4117169ee0466761d17aa3676f2"
+  integrity sha512-yvpSnPymrjvRrat3/oKe93XtaCiJfA72YWi3Eg8BpwJL2P++9YYlDocv/NjhxsjhkflWWv/6sKExO+x6XZgbdQ==
 
 "@types/json5@^0.0.29":
   version "0.0.29"
