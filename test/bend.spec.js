@@ -1,4 +1,5 @@
 import chai from 'chai';
+import Vector from '@crhio/vector';
 import Bend from '../src/bend';
 
 
@@ -149,5 +150,32 @@ describe('bend', () => {
 
     const joined = bend1.join(bend2);
     expect(joined.path).to.eql('1 d 1 s 10 l -45 w 14.142 l 45 w 10 l -45 w 7.071203435596426 l 45 w 10 l 45.00000000000001 w 14.142 l 44.99999999999998 w 10 l');
+  });
+
+  it('should allow multiple bends to be joined in a chain', () => {
+    const bend1 = Bend({
+      path: '1 d 1 s 10 l',
+      initialPosition: { x: 0, y: 0 },
+      initialDirection: { x: -1, y: 0 },
+    });
+
+    const d2 = Vector({ x: 1, y: 1 }).normalize();
+    const bend2 = Bend({
+      path: '1 d 1 s 14.142 l',
+      initialPosition: { x: 0, y: 0 },
+      initialDirection: d2,
+    });
+
+    const bend3 = Bend({
+      path: '1 d 1 s 10 l',
+      initialPosition: { x: 10, y: 10 },
+      initialDirection: { x: 1, y: 0 },
+    });
+
+    const joined = bend1
+      .join(bend2, 'start', 'start')
+      .join(bend3);
+
+    expect(joined.path.to.eql('1 d 1 s 10 l 45 w 14.142 l 0 w 0.00013562373095105465 l -45 w 10 l'));
   });
 });

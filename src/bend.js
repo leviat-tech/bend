@@ -620,9 +620,6 @@ Bend.prototype.join = function join(bend, endpointA = 'end', endpointB = 'start'
   const b = endpointB === 'start' ? bend : bend.reverse();
 
   const aVertices = a.vertices();
-  const aVec = Vector(aVertices[aVertices.length - 1])
-    .subtract(aVertices[aVertices.length - 2])
-    .normalize();
   const aLastSeg = [aVertices[aVertices.length - 2], aVertices[aVertices.length - 1]];
   const bVertices = b.vertices();
   const bFirstSeg = [bVertices[0], bVertices[1]];
@@ -647,7 +644,7 @@ Bend.prototype.join = function join(bend, endpointA = 'end', endpointB = 'start'
   return new Bend({
     path: verticesToPath(vertices, d, s),
     initialPosition: aVertices[0],
-    initialDirection: aVec,
+    initialDirection: a.initialDirection,
   });
 };
 
