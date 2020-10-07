@@ -176,6 +176,12 @@ describe('bend', () => {
       .join(bend2, 'start', 'start')
       .join(bend3);
 
-    expect(joined.path.to.eql('1 d 1 s 10 l 45 w 14.142 l 0 w 0.00013562373095105465 l -45 w 10 l'));
+    expect(joined.path).to.eql('1 d 1 s 10 l 45 w 14.142 l 0 w 0.00013562373095105465 l -45 w 10 l');
   });
+});
+
+it('should return the step-only path for the object', () => {
+  const bend = Bend({ path: '1 d 1 s 5 l 90 w 5 l 45 w 5 l' });
+
+  expect(bend.stepPath()).to.eql('5 l 90 w 5 l 45 w 5 l');
 });

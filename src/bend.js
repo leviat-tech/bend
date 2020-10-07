@@ -265,6 +265,15 @@ Bend.prototype.instructionList = function instructionList() {
   return stack.instructions;
 };
 
+// The path object, minus bend radius & diameter commands
+Bend.prototype.stepPath = function stepPath() {
+  const list = this.instructionList();
+
+  const stepsOnly = list.filter(item => !['d', 's'].includes(item.type));
+
+  return instructionsToPath(stepsOnly);
+};
+
 // The instruction list, computing vertices from bends
 Bend.prototype.instructions = function instructions() {
   let stack = {
