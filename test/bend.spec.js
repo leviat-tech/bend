@@ -131,25 +131,26 @@ describe('bend', () => {
       .reverse();
 
     expect(bend.path).to.eql('1 s 1 d 5 l -30 w 5 l -90 w 5 l');
-    expect(bend.initialPosition.x).to.eql(2.5000000000000004);
-    expect(bend.initialDirection.x).to.eql(0.4999999999999998);
+    expect(bend.initialPosition.x.toFixed(3)).to.eql('2.067');
+    expect(bend.initialDirection.x.toFixed(3)).to.eql('0.500');
   });
 
   it('should allow two bends to be joined', () => {
     const bend1 = Bend({
-      path: '1 d 1 s 10 l -45 w 14.142 l 45 w 10 l',
+      path: '1 d 1 s 10.207 l -45 w 14.556 l 45 w 10.207 l',
       initialPosition: { x: -30, y: 10 },
       initialDirection: { x: 1, y: 0 },
     });
 
     const bend2 = Bend({
-      path: '1 d 1 s 10 l 45 w 14.142 l 45 w 10 l',
+      path: '1 d 1 s 10.207 l 45 w 14.556 l 45 w 10.207 l',
       initialPosition: { x: 5, y: -5 },
       initialDirection: { x: 1, y: 0 },
     });
 
     const joined = bend1.join(bend2);
-    expect(joined.path).to.eql('1 d 1 s 10 l -45 w 14.142 l 45 w 10 l -45 w 7.071203435596426 l 45 w 10 l 45.00000000000001 w 14.142 l 44.99999999999998 w 10 l');
+    // console.log('joined vertices', joined.vertices());
+    expect(joined.path).to.eql('1 d 1 s 10.207000000000003 l -44.99999999999999 w 14.556 l 44.99999999999999 w 10.41410052655957 l -44.99877646428732 w 7.485769064103285 l 44.99877646428732 w 10.41410052655957 l 45 w 14.555999999999997 l 44.999999999999986 w 10.207 l');
   });
 
   it('should allow multiple bends to be joined in a chain', () => {
@@ -176,12 +177,12 @@ describe('bend', () => {
       .join(bend2, 'start', 'start')
       .join(bend3);
 
-    expect(joined.path).to.eql('1 d 1 s 10 l 45 w 14.142 l 0 w 0.00013562373095105465 l -45 w 10 l');
+    expect(joined.path).to.eql('1 d 1 s 10.207106781186548 l 45 w 14.349106781186547 l 0.20724240491749857 l -45 w 10.207106781186548 l');
   });
-});
 
-it('should return the step-only path for the object', () => {
-  const bend = Bend({ path: '1 d 1 s 5 l 90 w 5 l 45 w 5 l' });
+  it('should return the step-only path for the object', () => {
+    const bend = Bend({ path: '6 d 6 s 40 l 45 w 30 l -90 w 30 l 90 w 30 l 90 w 30 l' });
 
-  expect(bend.stepPath()).to.eql('5 l 90 w 5 l 45 w 5 l');
+    expect(bend.stepPath()).to.eql('40 l 45 w 30 l -90 w 30 l 90 w 30 l 90 w 30 l');
+  });
 });

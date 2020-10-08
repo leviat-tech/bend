@@ -31,16 +31,20 @@ const words = {
   l: ({ instructions, params }) => {
     const projectedLength = parseFloat(params.pop());
     let length;
+    let pivotLength;
     const index = instructions.length - 1;
     if (instructions[index] && instructions[index].type === 'turn') {
       length = projectedLength - instructions[index].shift;
+      pivotLength = length;
     }
     if (instructions[index] && instructions[index].type === 'bend') {
       length = projectedLength - instructions[index].lengthToTangent - instructions[index].shift;
+      pivotLength = projectedLength - instructions[index].shift;
     }
     instructions.push({
       type: 'forward',
       length: length || projectedLength,
+      pivotLength: pivotLength || projectedLength,
       projectedLength,
     });
     return { instructions, params };
@@ -69,6 +73,7 @@ const words = {
     //  Bend reduces length of segment by tan(w/2) / radius
     const shift = barR !== 0 ? Math.abs(barR * Math.tan(deg2rad(angle / 2))) : 0;
     instructions[index].length -= shift;
+    instructions[index].pivotLength -= shift;
 
     if (bendR === 0) {
       // No bend radius results in a sharp turn
@@ -150,7 +155,7 @@ const drawProjected = {
   ...draw,
   forward: ({ pen, instruction }) => {
     const position = pen.position
-      .add(pen.direction.scale(instruction.projectedLength));
+      .add(pen.direction.scale(instruction.pivotLength));
     return {
       pen: { ...pen, position },
       commands: [{ type: 'lineto', params: [position.x, position.y] }],
@@ -218,25 +223,45 @@ const instructionsToPath = (instructions) => {
 };
 
 const verticesToPath = (vertices, d = 0, s = 0) => {
-  let v0 = vertices[0];
-  let vec = null;
-
   const instructions = [
     { type: 'd', params: [d] },
     { type: 's', params: [s] },
   ];
 
+  let angleA = 0;
+  let angleB = 0;
+  let segA = 0;
+  let segB = 0;
+  let shift = 0;
+
   for (let i = 1; i < vertices.length; i += 1) {
-    if (vec) {
-      const newVec = Vector(vertices[i]).subtract(v0);
-      const angle = newVec.angleDeg() - vec.angleDeg();
-      instructions.push({ type: 'w', params: [angle] });
-      vec = newVec;
-    } else {
-      vec = Vector(vertices[i]).subtract(v0);
+    const vec = Vector(vertices[i]).subtract(vertices[i - 1]);
+
+    segA = vec.magnitude();
+    angleA = vec.angleDeg();
+    const angle = angleA - angleB;
+    shift = d !== 0 ? Math.abs((d / 2) * Math.tan(deg2rad(angle / 2))) : 0;
+    segA += shift;
+    segB += shift;
+
+    // Add preceding straight segment
+    if (i > 1) {
+      instructions.push({ type: 'l', params: [segB] });
+
+      // Add bend segment
+      if (angle !== 0) {
+        instructions.push({ type: 'w', params: [angle] });
+      }
     }
-    instructions.push({ type: 'l', params: [vec.magnitude()] });
-    v0 = vertices[i];
+
+    // if last vertex, add final straight segment
+    if (i === vertices.length - 1) {
+      instructions.push({ type: 'l', params: [segA] });
+    }
+
+    // rotate segments
+    segB = segA;
+    angleB = angleA;
   }
 
   return instructionsToPath(instructions);
@@ -430,9 +455,7 @@ Bend.prototype.length = function length() {
 };
 
 Bend.prototype.bend = function bend(index, t, angle) {
-  const segments = this.projectedSegments();
   const instructions = this.instructionList();
-  const segment = segments[index];
 
   // Find index of instruction to replace
   const replacedInstruction = instructions
@@ -440,7 +463,7 @@ Bend.prototype.bend = function bend(index, t, angle) {
   const instructionIndex = instructions.indexOf(replacedInstruction);
 
   // Find distance along segment to bend
-  const segLength = Vector(segment.points[0]).dist(segment.points[1]);
+  const segLength = parseFloat(replacedInstruction.params[0]);
   const l1 = t * segLength;
   const l2 = segLength - l1;
 
