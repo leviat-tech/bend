@@ -239,7 +239,8 @@ const verticesToPath = (vertices, d = 0, s = 0) => {
 
     segA = vec.magnitude();
     angleA = vec.angleDeg();
-    const angle = angleA - angleB;
+
+    const angle = i === 1 ? 0 : angleA - angleB;
     shift = d !== 0 ? Math.abs((d / 2) * Math.tan(deg2rad(angle / 2))) : 0;
     segA += shift;
     segB += shift;

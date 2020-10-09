@@ -149,7 +149,6 @@ describe('bend', () => {
     });
 
     const joined = bend1.join(bend2);
-    // console.log('joined vertices', joined.vertices());
     expect(joined.path).to.eql('1 d 1 s 10.207000000000003 l -44.99999999999999 w 14.556 l 44.99999999999999 w 10.41410052655957 l -44.99877646428732 w 7.485769064103285 l 44.99877646428732 w 10.41410052655957 l 45 w 14.555999999999997 l 44.999999999999986 w 10.207 l');
   });
 
@@ -185,4 +184,5 @@ describe('bend', () => {
 
     expect(bend.stepPath()).to.eql('40 l 45 w 30 l -90 w 30 l 90 w 30 l 90 w 30 l');
   });
+
 });
