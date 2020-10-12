@@ -152,6 +152,23 @@ describe('bend', () => {
     expect(joined.path).to.eql('1 d 1 s 10.207000000000003 l -44.99999999999999 w 14.556 l 44.99999999999999 w 10.41410052655957 l -44.99877646428732 w 7.485769064103285 l 44.99877646428732 w 10.41410052655957 l 45 w 14.555999999999997 l 44.999999999999986 w 10.207 l');
   });
 
+  it('should join colinear segments', () => {
+    const bend1 = Bend({
+      path: '1 d 1 s 10 l',
+      initialPosition: { x: -10, y: 0 },
+      initialDirection: { x: -1, y: 0 },
+    });
+
+    const bend2 = Bend({
+      path: '1 d 1 s 10 l',
+      initialPosition: { x: 0, y: 0 },
+      initialDirection: { x: 1, y: 0 },
+    });
+
+    const joined = bend1.join(bend2, 'start', 'start');
+    expect(joined.path).to.eql('1 d 1 s 30 l');
+  });
+
   it('should allow multiple bends to be joined in a chain', () => {
     const bend1 = Bend({
       path: '1 d 1 s 10 l',

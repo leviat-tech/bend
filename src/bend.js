@@ -197,9 +197,14 @@ const fuzzyEqualPt = (ptA, ptB, epsilon = realThreshold) => fuzzyEqual(ptA.x, pt
     && fuzzyEqual(ptA.y, ptB.y, epsilon);
 
 const ptIsOnSegment = ([{ x: x1, y: y1 }, { x: x2, y: y2 }], { x, y }) => {
-  const a = (x - x1) / (x2 - x1);
-  const b = (y - y1) / (y2 - y1);
-  const isOnLine = fuzzyEqual(a, b);
+  const dxc = x - x1;
+  const dyc = y - y1;
+
+  const dxl = x2 - x1;
+  const dyl = y2 - y1;
+
+  const cross = dxc * dyl - dyc * dxl;
+  const isOnLine = fuzzyEqual(cross, 0);
 
   const xIsOnSegment = x1 < x2
     ? x1 <= x && x <= x2
