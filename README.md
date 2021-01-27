@@ -17,7 +17,7 @@ The following words are understood:
 - `atan`: arctangent
 - `neg`: negative
 
-So to compute the rebar bends for [shape 26](https://www.brcå.ltd.uk/downloads/dl/file/id/132/product/0/bs_8666_reinforcement_shape_codes.pdf), you could describe it as follows:
+So to compute the rebar bends for [shape 26](https://kbrebar.co.uk/bs8666-shape-codes/), you could describe it as follows:
 
 ```js
 import Bend from '@crhio/bend';
