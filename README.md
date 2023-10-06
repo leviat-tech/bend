@@ -47,3 +47,13 @@ Additionally:
 - `yarn dev` - produces development version of the library and runs a watcher
 - `yarn test` - well ... it runs the tests :)
 - `yarn test:watch` - same as above but in a watch mode
+
+## Test App
+
+To run the test app:
+
+```shell
+cd app
+npm i
+npm run dev
+```

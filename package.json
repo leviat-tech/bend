@@ -6,7 +6,7 @@
   "scripts": {
     "build": "webpack --env dev && webpack --env build && npm run test",
     "dev": "webpack --progress --colors --watch --env dev",
-    "test": "mocha --require @babel/register --colors $1",
+    "test": "mocha --require @babel/register",
     "test:watch": "mocha --reporter min --require @babel/register --colors -w ./test/*.spec.js"
   },
   "repository": {
