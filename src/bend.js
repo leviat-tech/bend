@@ -201,7 +201,7 @@ const invertParams = ({ type, params: p, svgParams: sp }) => {
 const fuzzyEqual = (x, y, epsilon = realThreshold) => Math.abs(x - y) < epsilon;
 
 const fuzzyEqualPt = (ptA, ptB, epsilon = realThreshold) => fuzzyEqual(ptA.x, ptB.x, epsilon)
-    && fuzzyEqual(ptA.y, ptB.y, epsilon);
+  && fuzzyEqual(ptA.y, ptB.y, epsilon);
 
 const ptIsOnSegment = ([{ x: x1, y: y1 }, { x: x2, y: y2 }], { x, y }) => {
   const dxc = x - x1;
