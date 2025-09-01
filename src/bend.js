@@ -88,12 +88,33 @@ const words = {
       } else {
         // Bend radius requires modification of neighboring straight segments
         const lengthToTangent = bendR / Math.tan(deg2rad(180 - Math.abs(angleValue)) / 2);
+        // console.log('i', i);
+        // console.log('barR', barR);
+        // console.log('bendR', bendR);
+        // console.log('angle', angle);
+        // console.log('angleValue', angleValue);
+        // console.log('lengthToTangent', lengthToTangent);
         instructions[index].length -= lengthToTangent;
         instructions.push({
           type: 'bend', angle: angleValue, lengthToTangent, shift, radius: bendR,
         });
       }
+      if (loopCount === 2 && i === 1) {
+        const radius = bendR - barR;
+        instructions.push({ type: 'bendRadius', radius });
+        const lengthToTangent = bendR / Math.tan(deg2rad(180 - Math.abs(angleValue)) / 2);
+        const length = radius - lengthToTangent - shift;
+        const pivotLength = radius - shift;
+
+        instructions.push({
+          type: 'forward',
+          length: length || radius,
+          pivotLength: pivotLength || radius,
+          radius,
+        });
+      }
     }
+    console.log('instructions', instructions);
     return { instructions, params };
   },
   div: ({ instructions, params }) => {
