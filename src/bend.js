@@ -16,7 +16,7 @@ function Bend({
 }
 
 const realThreshold = 1e-8;
-
+ 
 const words = {
   d: ({ instructions, params }) => {
     const radius = params.pop() / 2;
@@ -69,24 +69,42 @@ const words = {
         break;
       }
     }
-
-    //  Bend reduces length of segment by tan(w/2) / radius
-    const shift = barR !== 0 ? Math.abs(barR * Math.tan(deg2rad(angle / 2))) : 0;
-    instructions[index].length -= shift;
-    instructions[index].pivotLength -= shift;
-
-    if (bendR === 0) {
-      // No bend radius results in a sharp turn
-      instructions.push({ type: 'turn', angle, shift });
-    } else {
-      // Bend radius requires modification of neighboring straight segments
-      const lengthToTangent = bendR / Math.tan(deg2rad(180 - Math.abs(angle)) / 2);
-      instructions[index].length -= lengthToTangent;
-      instructions.push({
-        type: 'bend', angle, lengthToTangent, shift, radius: bendR,
-      });
+    let angleValue = angle;
+    let loopCount = 1;
+    if (Math.abs(angle) === 180) {
+      loopCount = 2;
+      angleValue = angle / 2;
     }
 
+    for (let i = 1; i <= loopCount; i++) {
+      //  Bend reduces length of segment by tan(w/2) / radius
+      const shift = barR !== 0 ? Math.abs(barR * Math.tan(deg2rad(angleValue / 2))) : 0;
+      instructions[index].length -= shift;
+      instructions[index].pivotLength -= shift;
+
+      if (bendR === 0) {
+        // No bend radius results in a sharp turn
+        instructions.push({ type: 'turn', angleValue, shift });
+      } else {
+        // Bend radius requires modification of neighboring straight segments
+        const lengthToTangent = bendR / Math.tan(deg2rad(180 - Math.abs(angleValue)) / 2);
+        instructions[index].length -= lengthToTangent;
+        instructions.push({
+          type: 'bend', angle: angleValue, lengthToTangent, shift, radius: bendR,
+        });
+      }
+      if (loopCount === 2 && i === 1) {
+        const radius = bendR - barR;
+        instructions.push({ type: 'bendRadius', radius });
+
+        instructions.push({
+          type: 'forward',
+          length: 0,
+          pivotLength: 0,
+          radius: 0,
+        });
+      }
+    }
     return { instructions, params };
   },
   bb: ({ instructions, params }) => {
@@ -255,7 +273,7 @@ const invertParams = ({ type, params: p, svgParams: sp }) => {
 const fuzzyEqual = (x, y, epsilon = realThreshold) => Math.abs(x - y) < epsilon;
 
 const fuzzyEqualPt = (ptA, ptB, epsilon = realThreshold) => fuzzyEqual(ptA.x, ptB.x, epsilon)
-    && fuzzyEqual(ptA.y, ptB.y, epsilon);
+  && fuzzyEqual(ptA.y, ptB.y, epsilon);
 
 const ptIsOnSegment = ([{ x: x1, y: y1 }, { x: x2, y: y2 }], { x, y }) => {
   const dxc = x - x1;
