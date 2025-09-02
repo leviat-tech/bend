@@ -107,6 +107,42 @@ const words = {
     }
     return { instructions, params };
   },
+  bb: ({ instructions, params }) => {
+    const angle = params.pop();
+    const index = instructions.length - 1;
+
+    let barR = 0;
+    for (let i = index; i >= 0; i--) {
+      if (instructions[i].type === 'barRadius') {
+        barR = instructions[i].radius;
+        break;
+      }
+    }
+
+    let bendR = 0;
+    for (let i = index; i >= 0; i--) {
+      if (instructions[i].type === 'bendRadius') {
+        bendR = instructions[i].radius + barR;
+        break;
+      }
+    }
+
+    const shift = barR !== 0 ? Math.abs(barR * Math.tan(deg2rad(angle / 2))) : 0;
+    instructions[index].length -= shift;
+    instructions[index].pivotLength -= shift;
+
+    if (bendR === 0) {
+      instructions.push({ type: 'turnZ', angle, shift });
+    } else {
+      const lengthToTangent = bendR / Math.tan(deg2rad(180 - Math.abs(angle)) / 2);
+      instructions[index].length -= lengthToTangent;
+      instructions.push({
+        type: 'bendZ', angle, lengthToTangent, shift, radius: bendR,
+      });
+    }
+
+    return { instructions, params };
+  },
   div: ({ instructions, params }) => {
     const d = params.pop();
     const n = params.pop();
@@ -164,6 +200,31 @@ const draw = {
     };
   },
   turn: ({ pen, instruction }) => ({
+    pen: { ...pen, direction: pen.direction.rotateDeg(instruction.angle) },
+    commands: null,
+  }),
+  bendZ: ({ pen, instruction }) => {
+    const bendR = pen.bendRadius ?? 0;
+    const barR = pen.barRadius ?? 0;
+    const r = bendR + barR;
+    const direction = pen.direction.rotateDeg(instruction.angle); // Assuming Z-axis bend rotates in-plane
+    const position = pen.position
+      .add(pen.direction.scale(instruction.lengthToTangent))
+      .add(direction.scale(instruction.lengthToTangent));
+    const sf = instruction.angle > 0 ? 1 : 0;
+    const l = Vector(pen.position).dist(position) / 2;
+    const sagitta = r - Math.sqrt(r * r - l * l);
+    const sSign = sf === 1 ? 1 : -1;
+    return {
+      pen: { ...pen, position, direction },
+      commands: [{
+        type: 'arcto',
+        params: [position.x, position.y, sSign * (sagitta / l)],
+        svgParams: [r, r, 0, 0, sf, position.x, position.y],
+      }],
+    };
+  },
+  turnZ: ({ pen, instruction }) => ({
     pen: { ...pen, direction: pen.direction.rotateDeg(instruction.angle) },
     commands: null,
   }),
