@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "watch": "nodemon --exec yalc push"
   },
   "dependencies": {
     "@crhio/concrete": "^2.11.0",
@@ -19,5 +20,8 @@
     "sass": "^1.68.0",
     "tailwindcss": "^3.3.3",
     "vite": "^4.4.5"
+  },
+  "nodemonConfig": {
+    "ext": "js,json,hbs,html,mjs,cjs,json, vue,.map"
   }
 }
