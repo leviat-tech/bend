@@ -772,8 +772,7 @@ Bend.prototype.print = function print({ invertY = false } = {}) {
       }
 
       const svgParams = cmd.type === 'arcto' ? cmd.svgParams : cmd.params;
-      const _return = cmd.type !== 'rotateby' ? [cmds[command.type], ...svgParams].join(' ') : ' ';
-      return _return;
+      return cmd.type !== 'rotateby' ? [cmds[command.type], ...svgParams].join(' ') : ' ';
     }).join(' ');
 };
 
