@@ -1,13 +1,14 @@
 {
   "name": "@crhio/bend",
-  "version": "0.0.21",
+  "version": "0.0.22",
   "description": "An implementation of BVBS rebar bend format using postfix notation",
   "main": "lib/bend.min.js",
   "scripts": {
     "build": "webpack --env dev && webpack --env build && npm run test",
     "dev": "webpack --progress --colors --watch --env dev",
     "test": "mocha --require @babel/register",
-    "test:watch": "mocha --reporter min --require @babel/register --colors -w ./test/*.spec.js"
+    "test:watch": "mocha --reporter min --require @babel/register --colors -w ./test/*.spec.js",
+    "watch": "nodemon --exec yalc push"
   },
   "repository": {
     "type": "git",
@@ -58,5 +59,8 @@
   "directories": {
     "lib": "lib",
     "test": "test"
+  },
+  "nodemonConfig": {
+    "ext": "js,json,hbs,html,mjs,cjs,json, vue,.map"
   }
 }

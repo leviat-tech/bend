@@ -16,7 +16,7 @@ function Bend({
 }
 
 const realThreshold = 1e-8;
- 
+
 const words = {
   d: ({ instructions, params }) => {
     const radius = params.pop() / 2;
@@ -108,6 +108,7 @@ const words = {
     return { instructions, params };
   },
   bb: ({ instructions, params }) => {
+    // console.log('params', params);
     const angle = params.pop();
     const index = instructions.length - 1;
 
@@ -132,15 +133,14 @@ const words = {
     instructions[index].pivotLength -= shift;
 
     if (bendR === 0) {
-      instructions.push({ type: 'turnZ', angle, shift });
+      instructions.push({ type: 'rotate', angle, shift });
     } else {
       const lengthToTangent = bendR / Math.tan(deg2rad(180 - Math.abs(angle)) / 2);
       instructions[index].length -= lengthToTangent;
       instructions.push({
-        type: 'bendZ', angle, lengthToTangent, shift, radius: bendR,
+        type: 'rotate', angle,
       });
     }
-
     return { instructions, params };
   },
   div: ({ instructions, params }) => {
@@ -203,30 +203,9 @@ const draw = {
     pen: { ...pen, direction: pen.direction.rotateDeg(instruction.angle) },
     commands: null,
   }),
-  bendZ: ({ pen, instruction }) => {
-    const bendR = pen.bendRadius ?? 0;
-    const barR = pen.barRadius ?? 0;
-    const r = bendR + barR;
-    const direction = pen.direction.rotateDeg(instruction.angle); // Assuming Z-axis bend rotates in-plane
-    const position = pen.position
-      .add(pen.direction.scale(instruction.lengthToTangent))
-      .add(direction.scale(instruction.lengthToTangent));
-    const sf = instruction.angle > 0 ? 1 : 0;
-    const l = Vector(pen.position).dist(position) / 2;
-    const sagitta = r - Math.sqrt(r * r - l * l);
-    const sSign = sf === 1 ? 1 : -1;
-    return {
-      pen: { ...pen, position, direction },
-      commands: [{
-        type: 'arcto',
-        params: [position.x, position.y, sSign * (sagitta / l)],
-        svgParams: [r, r, 0, 0, sf, position.x, position.y],
-      }],
-    };
-  },
-  turnZ: ({ pen, instruction }) => ({
-    pen: { ...pen, direction: pen.direction.rotateDeg(instruction.angle) },
-    commands: null,
+  rotate: ({ pen, instruction }) => ({
+    pen: { ...pen },
+    commands: [{ type: 'rotateby', params: [instruction.angle] }],
   }),
 };
 
@@ -243,6 +222,10 @@ const drawProjected = {
   bend: ({ pen, instruction }) => ({
     pen: { ...pen, direction: pen.direction.rotateDeg(instruction.angle) },
     commands: null,
+  }),
+  rotate: ({ pen, instruction }) => ({
+    pen: { ...pen },
+    commands: [{ type: 'rotateby', params: [instruction.angle] }],
   }),
 };
 
@@ -413,6 +396,14 @@ Bend.prototype.commands = function commands() {
   let cmds = [{ type: 'moveto', params: [pen.position.x, pen.position.y] }];
 
   this.instructions().forEach((instruction) => {
+    // console.log('instruction.type', instruction.type);
+    // if(instruction.type === 'rotate' ) {
+
+    // } else {
+    //   const { pen: newPen, commands: newCommands } = draw[instruction.type]({ pen, instruction });
+    //   if (newCommands) cmds = cmds.concat(newCommands);
+    //   pen = newPen;
+    // }
     const { pen: newPen, commands: newCommands } = draw[instruction.type]({ pen, instruction });
     if (newCommands) cmds = cmds.concat(newCommands);
     pen = newPen;
@@ -428,7 +419,7 @@ Bend.prototype.projectedCommands = function lengths() {
     direction: this.initialDirection,
   };
 
-  let cmds = [{ type: 'moveto', params: [pen.position.x, pen.position.y] }];
+  let cmds = [{ type: 'moveto', params: [pen.position.x, pen.position.y, pen.position.z] }];
 
   this.instructions().forEach((instruction) => {
     const { pen: newPen, commands: newCommands } = drawProjected[instruction.type]({ pen, instruction });
@@ -781,8 +772,8 @@ Bend.prototype.print = function print({ invertY = false } = {}) {
       }
 
       const svgParams = cmd.type === 'arcto' ? cmd.svgParams : cmd.params;
-
-      return [cmds[command.type], ...svgParams].join(' ');
+      const _return = cmd.type !== 'rotateby' ? [cmds[command.type], ...svgParams].join(' ') : ' ';
+      return _return;
     }).join(' ');
 };
 
