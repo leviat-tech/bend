@@ -51,8 +51,14 @@ const words = {
   },
   w: ({ instructions, params }) => {
     const angle = params.pop();
-    const index = instructions.length - 1;
+    let index = instructions.length - 1;
 
+    for (let i = instructions.length - 1; i >= 0; i -= 1) {
+      if (instructions[i].type === 'forward') {
+        index = i;
+        break;
+      }
+    }
     // Find bend radius and bar radius, if any
     let barR = 0;
     for (let i = index; i >= 0; i -= 1) {
@@ -79,8 +85,10 @@ const words = {
     for (let i = 1; i <= loopCount; i++) {
       //  Bend reduces length of segment by tan(w/2) / radius
       const shift = barR !== 0 ? Math.abs(barR * Math.tan(deg2rad(angleValue / 2))) : 0;
-      instructions[index].length -= shift;
-      instructions[index].pivotLength -= shift;
+      if (instructions[index].type !== 'rotate')  {
+        instructions[index].length -= shift;
+        instructions[index].pivotLength -= shift;
+      }
 
       if (bendR === 0) {
         // No bend radius results in a sharp turn
@@ -88,7 +96,9 @@ const words = {
       } else {
         // Bend radius requires modification of neighboring straight segments
         const lengthToTangent = bendR / Math.tan(deg2rad(180 - Math.abs(angleValue)) / 2);
-        instructions[index].length -= lengthToTangent;
+        if (instructions[index].type !== 'rotate')  {
+          instructions[index].length -= lengthToTangent;
+        }
         instructions.push({
           type: 'bend', angle: angleValue, lengthToTangent, shift, radius: bendR,
         });
@@ -110,37 +120,9 @@ const words = {
   bb: ({ instructions, params }) => {
     // console.log('params', params);
     const angle = params.pop();
-    const index = instructions.length - 1;
-
-    let barR = 0;
-    for (let i = index; i >= 0; i--) {
-      if (instructions[i].type === 'barRadius') {
-        barR = instructions[i].radius;
-        break;
-      }
-    }
-
-    let bendR = 0;
-    for (let i = index; i >= 0; i--) {
-      if (instructions[i].type === 'bendRadius') {
-        bendR = instructions[i].radius + barR;
-        break;
-      }
-    }
-
-    const shift = barR !== 0 ? Math.abs(barR * Math.tan(deg2rad(angle / 2))) : 0;
-    instructions[index].length -= shift;
-    instructions[index].pivotLength -= shift;
-
-    if (bendR === 0) {
-      instructions.push({ type: 'rotate', angle, shift });
-    } else {
-      const lengthToTangent = bendR / Math.tan(deg2rad(180 - Math.abs(angle)) / 2);
-      instructions[index].length -= lengthToTangent;
-      instructions.push({
-        type: 'rotate', angle,
-      });
-    }
+    instructions.push({
+      type: 'rotate', angle,
+    });
     return { instructions, params };
   },
   div: ({ instructions, params }) => {
@@ -205,7 +187,7 @@ const draw = {
   }),
   rotate: ({ pen, instruction }) => ({
     pen: { ...pen },
-    commands: [{ type: 'rotateby', params: [instruction.angle] }],
+    commands: null,
   }),
 };
 
@@ -225,7 +207,7 @@ const drawProjected = {
   }),
   rotate: ({ pen, instruction }) => ({
     pen: { ...pen },
-    commands: [{ type: 'rotateby', params: [instruction.angle] }],
+    commands: null,
   }),
 };
 
