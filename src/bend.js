@@ -187,7 +187,11 @@ const draw = {
   }),
   rotate: ({ pen, instruction }) => ({
     pen: { ...pen },
-    commands: null,
+    commands: [{
+      type: 'rotate',
+      params: [],
+      rotation: instruction.angle,
+    }],
   }),
 };
 
@@ -205,10 +209,17 @@ const drawProjected = {
     pen: { ...pen, direction: pen.direction.rotateDeg(instruction.angle) },
     commands: null,
   }),
-  rotate: ({ pen, instruction }) => ({
-    pen: { ...pen },
-    commands: null,
-  }),
+  rotate: ({ pen, instruction }) => {
+    const position = pen.position;
+    return {
+      pen: { ...pen },
+      commands: [{
+        type: 'rotate',
+        params: [position.x, position.y],
+        rotation: instruction.angle,
+      }],
+    };
+  },
 };
 
 const cmdPt = ({ type, params }) => {
